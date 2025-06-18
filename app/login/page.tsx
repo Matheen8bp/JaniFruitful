@@ -104,7 +104,6 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-          <div className="mt-4 text-sm text-gray-600 text-center">Demo credentials: admin@drinks.com / admin123</div>
         </CardContent>
       </Card>
     </div>

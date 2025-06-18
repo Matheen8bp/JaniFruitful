@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server"
 import connectDB from "@/lib/mongodb"
 import MenuItem from "@/models/MenuItem"
+import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
     await connectDB()
 
-    const menuItems = await MenuItem.find({ isActive: true }).sort({ category: 1, name: 1 })
+    const menuItems = await MenuItem.find({}).sort({ category: 1, name: 1 })
 
     return NextResponse.json(menuItems)
   } catch (error) {

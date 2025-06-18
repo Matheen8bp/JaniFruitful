@@ -117,7 +117,7 @@ export async function POST(req: Request) {
 export async function GET() {
   try {
     await connectDB();
-    const menuItems = await MenuItem.find({ isActive: true }).sort({ createdAt: -1 });
+    const menuItems = await MenuItem.find({}).sort({ createdAt: -1 });
     return NextResponse.json(menuItems);
   } catch (error) {
     console.error("Error fetching menu items:", error);

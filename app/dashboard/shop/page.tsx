@@ -17,6 +17,7 @@ interface MenuItem {
   category: string
   price: number
   image: string
+  isActive: boolean
 }
 
 interface CartItem extends MenuItem {
@@ -263,8 +264,17 @@ export default function ShopPage() {
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {groupedItems[category]?.map((item) => {
               const quantity = getItemQuantity(item._id)
+              const isDisabled = !item.isActive
+              
               return (
-                <Card key={item._id} className="overflow-hidden hover:shadow-lg transition-all duration-200 group">
+                <Card 
+                  key={item._id} 
+                  className={`overflow-hidden transition-all duration-200 group ${
+                    isDisabled 
+                      ? 'opacity-50 grayscale cursor-not-allowed' 
+                      : 'hover:shadow-lg'
+                  }`}
+                >
                   <div className="aspect-square bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center relative">
                     <Image
                       src={item.image || "/placeholder.svg"}
@@ -277,18 +287,35 @@ export default function ShopPage() {
                         target.src = `/placeholder.svg?height=150&width=150`
                       }}
                     />
-                    {quantity > 0 && (
+                    {quantity > 0 && !isDisabled && (
                       <div className="absolute top-2 right-2 bg-emerald-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                         {quantity}
                       </div>
                     )}
+                    {isDisabled && (
+                      <div className="absolute top-2 right-2 bg-red-600 text-white rounded-full px-2 py-1 text-xs font-bold">
+                        Unavailable
+                      </div>
+                    )}
                   </div>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm leading-tight">{item.name}</CardTitle>
-                    <CardDescription className="text-emerald-600 font-semibold">₹{item.price}</CardDescription>
+                    <CardTitle className={`text-sm leading-tight ${isDisabled ? 'text-gray-500' : ''}`}>
+                      {item.name}
+                    </CardTitle>
+                    <CardDescription className={`font-semibold ${isDisabled ? 'text-gray-400' : 'text-emerald-600'}`}>
+                      ₹{item.price}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    {quantity === 0 ? (
+                    {isDisabled ? (
+                      <Button
+                        size="sm"
+                        className="w-full bg-gray-400 text-gray-600 cursor-not-allowed"
+                        disabled
+                      >
+                        Unavailable
+                      </Button>
+                    ) : quantity === 0 ? (
                       <Button
                         size="sm"
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-xs"
