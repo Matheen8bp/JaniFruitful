@@ -1,21 +1,23 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import {
-  Award,
-  Gift,
-  MessageCircle,
-  Target,
-  TrendingUp,
-  Users,
+    Award,
+    Gift,
+    MessageCircle,
+    Target,
+    TrendingUp,
+    Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 

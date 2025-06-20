@@ -1,21 +1,23 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+export const dynamic = "force-dynamic";
+
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Gift,
   MessageCircle,
   ShoppingCart,
   TrendingUp,
   Users,
-} from "lucide-react"
-import { useEffect, useState } from "react"
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface DashboardStats {
   totalCustomers: number

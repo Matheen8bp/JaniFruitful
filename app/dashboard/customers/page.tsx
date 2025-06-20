@@ -1,14 +1,16 @@
 "use client"
 
-import type React from "react"
+export const dynamic = "force-dynamic";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Calendar, ChevronRight, Gift, IndianRupee, MessageCircle, Search, ShoppingBag } from "lucide-react"
-import { useEffect, useState } from "react"
+import type React from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Calendar, ChevronRight, Gift, IndianRupee, MessageCircle, Search, ShoppingBag } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface Customer {
   _id: string
