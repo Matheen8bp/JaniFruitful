@@ -1,7 +1,7 @@
 const { createServer } = require('http');
 require('dotenv').config();
 const next = require('next');
-const connectDB = require('./lib/mongodb.ts').default;
+const connectDB = require('./lib/mongodb').default;
 
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== 'production';
