@@ -11,6 +11,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
+import { getApiUrl } from "@/lib/config";
 import {
     Award,
     Gift,
@@ -40,12 +41,12 @@ export default function RewardsPage() {
   });
 
   useEffect(() => {
-    fetchRewardData();
+    fetchRewards();
   }, []);
 
-  const fetchRewardData = async () => {
+  const fetchRewards = async () => {
     try {
-      const response = await fetch("/api/rewards");
+      const response = await fetch(getApiUrl('api/rewards'));
       const data = await response.json();
   
       const enrichedCustomers = data.customers.map((customer: RewardCustomer) => {

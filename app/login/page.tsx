@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
+import { getApiUrl } from "@/lib/config"
 import { Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -24,7 +25,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/admin/login", {
+      const response = await fetch(getApiUrl('api/admin/login'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -34,7 +35,12 @@ export default function LoginPage() {
 
       const data = await response.json()
 
-      if (response.ok) {
+      if (response.ok && data.success) {
+        // Store the token in localStorage for future requests
+        if (data.token) {
+          localStorage.setItem('auth-token', data.token);
+        }
+        
         toast({
           title: "Login successful",
           description: "Welcome to the admin dashboard!",
@@ -47,7 +53,8 @@ export default function LoginPage() {
           variant: "destructive",
         })
       }
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",

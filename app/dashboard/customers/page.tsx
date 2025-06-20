@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { getApiUrl } from "@/lib/config";
 import { Calendar, ChevronRight, Gift, IndianRupee, MessageCircle, Search, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -58,7 +59,7 @@ export default function CustomersPage() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch("/api/customers")
+      const response = await fetch(getApiUrl('api/customers'))
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }

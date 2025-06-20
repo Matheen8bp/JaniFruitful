@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/lib/config";
 import { Check, Minus, Plus, ShoppingCart, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -43,7 +44,7 @@ export default function ShopPage() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch("/api/menu")
+      const response = await fetch(getApiUrl('api/menu'))
       if (response.ok) {
         const data = await response.json()
         setMenuItems(data)
@@ -110,6 +111,36 @@ export default function ShopPage() {
     setShowCheckout(true)
   }
 
+  const handlePurchase = async (item: MenuItem) => {
+    try {
+      const response = await fetch(getApiUrl('api/customers/purchase'), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerName,
+          customerPhone,
+          drinkType: item.category,
+          itemId: item._id,
+          itemName: item.name,
+          price: item.price,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to process order")
+      }
+    } catch (err) {
+      console.error("Error processing order:", err)
+      toast({
+        title: "Error",
+        description: "Failed to process order. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleSubmitOrder = async () => {
     if (!customerName || !customerPhone) {
       toast({
@@ -126,24 +157,7 @@ export default function ShopPage() {
       // Process each item in the cart
       for (const cartItem of cart) {
         for (let i = 0; i < cartItem.quantity; i++) {
-          const response = await fetch("/api/customers/purchase", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              customerName,
-              customerPhone,
-              drinkType: cartItem.category,
-              itemId: cartItem._id,
-              itemName: cartItem.name,
-              price: cartItem.price,
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error("Failed to process order")
-          }
+          await handlePurchase(cartItem)
         }
       }
 

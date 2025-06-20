@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { getApiUrl } from "@/lib/config";
 import {
   Gift,
   MessageCircle,
@@ -47,12 +48,12 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
-    fetchDashboardStats()
+    fetchStats()
   }, [])
 
-  const fetchDashboardStats = async () => {
+  const fetchStats = async () => {
     try {
-      const response = await fetch("/api/dashboard/stats")
+      const response = await fetch(getApiUrl('api/dashboard/stats'))
       const data = await response.json()
       setStats(data)
     } catch (error) {

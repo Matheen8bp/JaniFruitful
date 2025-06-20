@@ -86,6 +86,63 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
+app.get('/api/admin/profile', async (req, res) => {
+  try {
+    await connectDB();
+
+    // Get admin info (assuming single admin for now)
+    const admin = await Admin.findOne({}).select("-password");
+
+    // Get or create shop info
+    let shop = await Shop.findOne({});
+    if (!shop) {
+      shop = new Shop({});
+      await shop.save();
+    }
+
+    // Get business stats
+    const customers = await Customer.find({});
+    const totalCustomers = customers.length;
+    const totalOrders = customers.reduce((sum, customer) => sum + customer.totalOrders, 0);
+    const totalRevenue = customers.reduce((sum, customer) => {
+      return (
+        sum +
+        customer.orders.reduce((orderSum, order) => {
+          return orderSum + (order.isReward ? 0 : order.price);
+        }, 0)
+      );
+    }, 0);
+    const rewardsGiven = customers.reduce((sum, customer) => sum + customer.rewardsEarned, 0);
+
+    res.json({
+      admin: {
+        name: admin?.username || "Admin User",
+        email: admin?.email || "admin@drinks.com",
+        role: admin?.role || "Super Admin",
+        joinDate: admin?.createdAt ? new Date(admin.createdAt).toLocaleDateString() : "January 1, 2024",
+        lastLogin: admin?.lastLogin ? new Date(admin.lastLogin).toLocaleString() : "Today, 2:30 PM",
+      },
+      shop: {
+        name: shop.name,
+        phone: shop.phone,
+        email: shop.email,
+        address: shop.address,
+        established: shop.established,
+        license: shop.license,
+      },
+      stats: {
+        totalCustomers,
+        totalOrders,
+        totalRevenue,
+        rewardsGiven,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch profile data:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch profile data" });
+  }
+});
+
 // Menu routes
 app.get('/api/menu', async (req, res) => {
   try {
@@ -95,6 +152,48 @@ app.get('/api/menu', async (req, res) => {
   } catch (error) {
     console.error("Error fetching menu:", error);
     res.status(500).json({ error: "Failed to fetch menu items" });
+  }
+});
+
+// Menu items management routes
+app.get('/api/menu-items', async (req, res) => {
+  try {
+    await connectDB();
+    const menuItems = await MenuItem.find({}).sort({ createdAt: -1 });
+    res.json(menuItems);
+  } catch (error) {
+    console.error("Error fetching menu items:", error);
+    res.status(500).json({ error: "Failed to fetch menu items" });
+  }
+});
+
+app.post('/api/menu-items', async (req, res) => {
+  try {
+    await connectDB();
+    const { name, category, price, image, description } = req.body;
+
+    if (!name || !category || !price) {
+      return res.status(400).json({ success: false, message: "Name, category, and price are required" });
+    }
+
+    const menuItem = new MenuItem({
+      name,
+      category,
+      price,
+      image: image || "/placeholder.svg?height=200&width=200",
+      description,
+    });
+
+    await menuItem.save();
+
+    res.json({
+      success: true,
+      message: "Menu item created successfully",
+      menuItem,
+    });
+  } catch (error) {
+    console.error("Failed to create menu item:", error);
+    res.status(500).json({ success: false, message: "Failed to create menu item" });
   }
 });
 

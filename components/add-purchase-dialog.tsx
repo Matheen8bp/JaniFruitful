@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { getApiUrl } from "@/lib/config"
 import { ShoppingCart } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -53,7 +54,7 @@ export function AddPurchaseDialog({ open, onOpenChange, selectedItem, onSuccess 
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch("/api/menu")
+      const response = await fetch(getApiUrl('api/menu'))
       const data = await response.json()
       setMenuItems(data)
     } catch (error) {
@@ -71,7 +72,7 @@ export function AddPurchaseDialog({ open, onOpenChange, selectedItem, onSuccess 
         throw new Error("Selected item not found")
       }
 
-      const response = await fetch("/api/customers/purchase", {
+      const response = await fetch(getApiUrl('api/customers/purchase'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Building2, Phone, MapPin, Calendar, Shield, Clock } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getApiUrl } from "@/lib/config"
+import { Building2, Calendar, Clock, Mail, MapPin, Phone, Shield, User } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface ProfileData {
   admin: {
@@ -39,7 +40,7 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     try {
-      const response = await fetch("/api/admin/profile")
+      const response = await fetch(getApiUrl('api/admin/profile'))
       const data = await response.json()
       setProfileData(data)
     } catch (error) {

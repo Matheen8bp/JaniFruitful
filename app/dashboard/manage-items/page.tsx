@@ -30,6 +30,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { getApiUrl } from "@/lib/config";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -71,7 +72,7 @@ export default function ManageItemsPage() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await fetch("/api/menu-items");
+      const response = await fetch(getApiUrl('api/menu-items'));
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

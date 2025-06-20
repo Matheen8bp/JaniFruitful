@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { getApiUrl } from "@/lib/config";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -51,7 +52,7 @@ export default function AddItemPage() {
       console.log("Submitting form data...");
 
       // Send everything to the API route
-      const response = await fetch("/api/menu-items", {
+      const response = await fetch(getApiUrl('api/menu-items'), {
         method: "POST",
         body: submitFormData, // Send as FormData instead of JSON
       });
