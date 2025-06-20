@@ -1,6 +1,6 @@
-import cloudinary from "@/cloudinary";
-import connectDB from "@/lib/mongodb";
-import MenuItem from "@/models/MenuItem";
+import cloudinary from "@/backend/cloudinary";
+import connectDB from "@/backend/lib/mongodb";
+import MenuItem from "@/backend/models/MenuItem";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {

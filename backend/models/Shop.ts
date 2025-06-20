@@ -45,4 +45,4 @@ const ShopSchema = new Schema<IShop>({
   },
 })
 
-export default mongoose.models.Shop || mongoose.model<IShop>("Shop", ShopSchema)
+export default mongoose.models.Shop || mongoose.model<IShop>("Shop", ShopSchema) 

@@ -44,4 +44,4 @@ const MenuItemSchema = new Schema<IMenuItem>({
   },
 })
 
-export default mongoose.models.MenuItem || mongoose.model<IMenuItem>("MenuItem", MenuItemSchema)
+export default mongoose.models.MenuItem || mongoose.model<IMenuItem>("MenuItem", MenuItemSchema) 

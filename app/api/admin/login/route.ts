@@ -1,8 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server"
+import connectDB from "@/backend/lib/mongodb"
+import Admin from "@/backend/models/Admin"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
-import connectDB from "@/lib/mongodb"
-import Admin from "@/models/Admin"
+import { type NextRequest, NextResponse } from "next/server"
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
 

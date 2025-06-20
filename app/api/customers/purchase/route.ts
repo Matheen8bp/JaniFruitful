@@ -1,6 +1,6 @@
-import connectDB from "@/lib/mongodb"
-import Customer from "@/models/Customer"
-import MenuItem from "@/models/MenuItem"
+import connectDB from "@/backend/lib/mongodb"
+import Customer from "@/backend/models/Customer"
+import MenuItem from "@/backend/models/MenuItem"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {

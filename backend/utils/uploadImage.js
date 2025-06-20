@@ -16,4 +16,4 @@ const uploadImage = async () => {
   }
 };
 
-uploadImage();
+uploadImage(); 

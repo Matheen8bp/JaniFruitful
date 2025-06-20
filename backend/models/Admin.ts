@@ -41,4 +41,4 @@ const AdminSchema = new Schema<IAdmin>({
   },
 })
 
-export default mongoose.models.Admin || mongoose.model<IAdmin>("Admin", AdminSchema)
+export default mongoose.models.Admin || mongoose.model<IAdmin>("Admin", AdminSchema) 

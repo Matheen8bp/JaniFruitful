@@ -1,9 +1,9 @@
-import connectDB from "@/lib/mongodb";
-import MenuItem from "@/models/MenuItem";
-import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/backend/lib/mongodb";
+import MenuItem from "@/backend/models/MenuItem";
+import { type NextRequest, NextResponse } from "next/server";
 
 // Import cloudinary with proper path
-import cloudinary from "../../../../cloudinary";
+import cloudinary from "@/backend/cloudinary";
 
 // Update menu item
 export async function PUT(

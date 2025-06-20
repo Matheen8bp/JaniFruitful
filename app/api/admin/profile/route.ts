@@ -1,8 +1,8 @@
+import connectDB from "@/backend/lib/mongodb"
+import Admin from "@/backend/models/Admin"
+import Customer from "@/backend/models/Customer"
+import Shop from "@/backend/models/Shop"
 import { type NextRequest, NextResponse } from "next/server"
-import connectDB from "@/lib/mongodb"
-import Admin from "@/models/Admin"
-import Shop from "@/models/Shop"
-import Customer from "@/models/Customer"
 
 export async function GET() {
   try {
