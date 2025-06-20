@@ -1,58 +1,104 @@
 "use client"
 
-import { getApiUrl } from "@/lib/config"
-import { useState } from "react"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiUrl } from "@/lib/config";
+import { useState } from "react";
 
 export default function TestBackendPage() {
-  const [testResult, setTestResult] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [testResults, setTestResults] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const testBackend = async () => {
-    setIsLoading(true)
-    setTestResult("Testing...")
-
+  const testBackendConnection = async () => {
+    setIsLoading(true);
     try {
-      // Test the health endpoint
-      const healthUrl = getApiUrl('health')
-      console.log('Testing health endpoint:', healthUrl)
-      
-      const response = await fetch(healthUrl)
-      const data = await response.json()
-      
-      setTestResult(`✅ Backend is accessible!\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`)
+      // Test 1: Health check
+      const healthResponse = await fetch(getApiUrl('health'));
+      const healthData = await healthResponse.json();
+
+      // Test 2: Root endpoint
+      const rootResponse = await fetch(getApiUrl(''));
+      const rootData = await rootResponse.json();
+
+      setTestResults({
+        health: {
+          status: healthResponse.status,
+          data: healthData,
+          url: getApiUrl('health')
+        },
+        root: {
+          status: rootResponse.status,
+          data: rootData,
+          url: getApiUrl('')
+        }
+      });
     } catch (error) {
-      console.error('Backend test error:', error)
-      setTestResult(`❌ Backend connection failed!\nError: ${error}`)
+      setTestResults({
+        error: error instanceof Error ? error.message : 'Unknown error',
+        url: getApiUrl('health')
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full space-y-4">
-        <h1 className="text-2xl font-bold text-center">Backend Connection Test</h1>
-        
-        <div className="bg-white p-4 rounded-lg shadow">
-          <p className="text-sm text-gray-600 mb-4">
-            Current API Base URL: <code className="bg-gray-100 px-2 py-1 rounded">{getApiUrl('')}</code>
-          </p>
-          
-          <button 
-            onClick={testBackend}
+    <div className="container mx-auto py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>Backend Connection Test</CardTitle>
+          <CardDescription>
+            Test the connection between your frontend and backend
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Button 
+            onClick={testBackendConnection} 
             disabled={isLoading}
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50"
+            className="w-full"
           >
             {isLoading ? "Testing..." : "Test Backend Connection"}
-          </button>
-          
-          {testResult && (
-            <div className="mt-4 p-3 bg-gray-100 rounded">
-              <pre className="text-sm whitespace-pre-wrap">{testResult}</pre>
+          </Button>
+
+          {testResults && (
+            <div className="space-y-4">
+              {testResults.error ? (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h3 className="font-semibold text-red-800">❌ Connection Failed</h3>
+                  <p className="text-red-600 mt-2">Error: {testResults.error}</p>
+                  <p className="text-sm text-red-500 mt-1">URL: {testResults.url}</p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 className="font-semibold text-green-800">✅ Connection Successful</h3>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-semibold text-blue-800">Health Check</h4>
+                      <p className="text-sm text-blue-600 mt-1">Status: {testResults.health.status}</p>
+                      <p className="text-sm text-blue-600">URL: {testResults.health.url}</p>
+                      <pre className="text-xs mt-2 bg-white p-2 rounded border">
+                        {JSON.stringify(testResults.health.data, null, 2)}
+                      </pre>
+                    </div>
+
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-semibold text-blue-800">Root Endpoint</h4>
+                      <p className="text-sm text-blue-600 mt-1">Status: {testResults.root.status}</p>
+                      <p className="text-sm text-blue-600">URL: {testResults.root.url}</p>
+                      <pre className="text-xs mt-2 bg-white p-2 rounded border">
+                        {JSON.stringify(testResults.root.data, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 } 

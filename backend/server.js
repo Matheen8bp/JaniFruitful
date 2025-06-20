@@ -6,8 +6,21 @@ const { connectDB } = require('./lib/mongodb');
 const app = express();
 const port = parseInt(process.env.PORT, 10) || 5001;
 
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://*.vercel.app',
+    'https://*.vercel.app/*',
+    process.env.FRONTEND_URL // Allow custom frontend URL from environment
+  ].filter(Boolean),
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 

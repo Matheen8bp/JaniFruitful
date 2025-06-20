@@ -26,7 +26,7 @@ export default function LoginPage() {
 
     try {
       const apiUrl = getApiUrl('api/admin/login');
-      console.log('Attempting login to:', apiUrl);
+      console.log('🔐 Attempting login to:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -36,11 +36,22 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        // Handle different HTTP status codes
+        if (response.status === 0 || response.status >= 500) {
+          throw new Error(`Backend server error (${response.status}). Please check if your backend is running.`);
+        } else if (response.status === 404) {
+          throw new Error('Backend endpoint not found. Please check your API configuration.');
+        } else if (response.status === 403) {
+          throw new Error('CORS error. Please check your backend CORS configuration.');
+        }
+      }
 
       const data = await response.json()
-      console.log('Response data:', data);
+      console.log('📄 Response data:', data);
 
       if (response.ok && data.success) {
         // Store the token in localStorage for future requests
@@ -61,10 +72,25 @@ export default function LoginPage() {
         })
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
+      
+      let errorMessage = "Something went wrong. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = "Cannot connect to backend server. Please check your internet connection and try again.";
+        } else if (error.message.includes('Backend server error')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('CORS error')) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
+        title: "Connection Error",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
