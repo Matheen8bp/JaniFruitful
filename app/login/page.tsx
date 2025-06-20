@@ -25,7 +25,10 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(getApiUrl('api/admin/login'), {
+      const apiUrl = getApiUrl('api/admin/login');
+      console.log('Attempting login to:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -33,7 +36,11 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       const data = await response.json()
+      console.log('Response data:', data);
 
       if (response.ok && data.success) {
         // Store the token in localStorage for future requests
