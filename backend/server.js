@@ -11,12 +11,15 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'http://localhost:3001',
-    'https://*.vercel.app',
-    'https://*.vercel.app/*',
+    'https://janis-fruitful.vercel.app', // Your specific Vercel domain
+    'https://janis-fruitful-git-main-janis-fruitful.vercel.app', // Preview deployments
+    'https://janis-fruitful-git-develop-janis-fruitful.vercel.app', // Other possible preview URLs
     process.env.FRONTEND_URL // Allow custom frontend URL from environment
   ].filter(Boolean),
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 };
 
 // Middleware
