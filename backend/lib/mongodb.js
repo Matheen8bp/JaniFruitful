@@ -3,7 +3,10 @@ const mongoose = require('mongoose');
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  console.error('❌ MONGODB_URI environment variable is not set!');
+  console.error('Please create a .env file in the backend directory with your MongoDB connection string.');
+  console.error('Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database');
+  process.exit(1);
 }
 
 let cached = global.mongoose;
@@ -23,7 +26,11 @@ async function connectDB() {
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('✅ Connected to MongoDB Atlas');
       return mongoose;
+    }).catch((error) => {
+      console.error('❌ MongoDB connection failed:', error.message);
+      throw error;
     });
   }
 

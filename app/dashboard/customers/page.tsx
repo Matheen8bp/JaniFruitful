@@ -74,28 +74,21 @@ export default function CustomersPage() {
 
   const sendWhatsAppReminder = (customer: Customer, e: React.MouseEvent) => {
     e.stopPropagation()
-    const message = `Hi ${customer.name}, You're just one drink away from a free reward! Visit us soon.`
+    
+    // Calculate drinks needed for reward
+    const paidDrinks = customer.orders.filter(order => !order.isReward).length;
+    const effectivePaidDrinks = paidDrinks - (customer.rewardsEarned * 5);
+    const progressTowardReward = effectivePaidDrinks % 5;
+    const drinksUntilReward = progressTowardReward === 0 && effectivePaidDrinks > 0 ? 0 : 5 - progressTowardReward;
+    
+    const message = `Hi ${customer.name}, You're just ${
+      drinksUntilReward
+    } drink${
+      drinksUntilReward > 1 ? "s" : ""
+    } away from a free reward! Visit us soon.Keep the streak going and claim your free drink! 💥  
+We can't wait to see you again 😊`
     const whatsappUrl = `https://api.whatsapp.com/send?phone=91${customer.phone}&text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, "_blank")
-  }
-
-  const getRewardStatus = (customer: Customer) => {
-    const ordersAfterLastReward = customer.totalOrders % 6
-    if (ordersAfterLastReward === 0 && customer.totalOrders > 0) {
-      return { status: "earned", message: "Reward Available!", progress: 6 }
-    } else if (ordersAfterLastReward >= 5) {
-      return {
-        status: "upcoming",
-        message: `${6 - ordersAfterLastReward} drink away!`,
-        progress: ordersAfterLastReward,
-      }
-    } else {
-      return {
-        status: "progress",
-        message: `${6 - ordersAfterLastReward} drinks to reward`,
-        progress: ordersAfterLastReward,
-      }
-    }
   }
 
   const getTotalSpent = (customer: Customer) => {
@@ -127,7 +120,6 @@ export default function CustomersPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredCustomers.map((customer) => {
-          const rewardStatus = getRewardStatus(customer)
           return (
             <Card
               key={customer._id}
@@ -163,42 +155,17 @@ export default function CustomersPage() {
                     <div className="text-2xl font-bold text-emerald-600">{customer.totalOrders}</div>
                     <div className="text-xs text-gray-600">Total Orders</div>
                   </div>
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <div className="text-2xl font-bold text-purple-600">{customer.rewardsEarned}</div>
-                    <div className="text-xs text-gray-600">Rewards</div>
+                  <div className="text-center p-3 bg-emerald-50 rounded-lg">
+                    <div className="text-2xl font-bold text-emerald-600">{customer.rewardsEarned}</div>
+                    <div className="text-xs text-gray-600">Rewards Earned</div>
                   </div>
+                </div>
+                
+                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">₹{getTotalSpent(customer)}</div>
+                  <div className="text-xs text-gray-600">Total Spent</div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">Reward Progress</span>
-                    <span className="text-xs text-gray-500">{rewardStatus.progress}/6</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        rewardStatus.status === "earned"
-                          ? "bg-purple-600"
-                          : rewardStatus.status === "upcoming"
-                            ? "bg-orange-500"
-                            : "bg-emerald-600"
-                      }`}
-                      style={{ width: `${(rewardStatus.progress / 6) * 100}%` }}
-                    />
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`w-full justify-center ${
-                      rewardStatus.status === "earned"
-                        ? "border-purple-600 text-purple-600"
-                        : rewardStatus.status === "upcoming"
-                          ? "border-orange-500 text-orange-600"
-                          : "border-emerald-600 text-emerald-600"
-                    }`}
-                  >
-                    {rewardStatus.message}
-                  </Badge>
-                </div>
               </CardContent>
             </Card>
           )
@@ -237,32 +204,14 @@ export default function CustomersPage() {
                   <div className="text-sm text-gray-600">Total Orders</div>
                 </div>
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <IndianRupee className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-blue-600">₹{getTotalSpent(selectedCustomer)}</div>
-                  <div className="text-sm text-gray-600">Total Spent</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Gift className="h-6 w-6 text-purple-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-purple-600">{selectedCustomer.rewardsEarned}</div>
+                  <Gift className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-blue-600">{selectedCustomer.rewardsEarned}</div>
                   <div className="text-sm text-gray-600">Rewards Earned</div>
                 </div>
-              </div>
-
-              {/* Reward Progress */}
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h3 className="font-semibold mb-3">Reward Progress</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Current Progress</span>
-                    <span className="text-sm font-medium">{getRewardStatus(selectedCustomer).progress}/6 drinks</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
-                      style={{ width: `${(getRewardStatus(selectedCustomer).progress / 6) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-600">{getRewardStatus(selectedCustomer).message}</p>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <IndianRupee className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-purple-600">{getTotalSpent(selectedCustomer)}</div>
+                  <div className="text-sm text-gray-600">Total Spent</div>
                 </div>
               </div>
 

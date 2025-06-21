@@ -23,7 +23,7 @@ const OrderSchema = new Schema<IOrder>({
   drinkType: {
     type: String,
     required: true,
-    enum: ["Mojito", "Ice Cream", "Milkshake", "Waffle"],
+    enum: ["Mojito", "Ice Cream", "Milkshake", "Waffle", "Reward"],
   },
   itemName: {
     type: String,
@@ -32,7 +32,9 @@ const OrderSchema = new Schema<IOrder>({
   itemId: {
     type: Schema.Types.ObjectId,
     ref: "MenuItem",
-    required: true,
+    required: function(this: IOrder) {
+      return this.drinkType !== "Reward";
+    },
   },
   price: {
     type: Number,

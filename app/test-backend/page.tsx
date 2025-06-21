@@ -6,99 +6,145 @@ import { getApiUrl } from "@/lib/config";
 import { useState } from "react";
 
 export default function TestBackendPage() {
-  const [testResults, setTestResults] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [testResults, setTestResults] = useState<any>({});
+  const [loading, setLoading] = useState(false);
 
-  const testBackendConnection = async () => {
-    setIsLoading(true);
+  const runAllTests = async () => {
+    setLoading(true);
+    const results: any = {};
+
     try {
       // Test 1: Health check
-      const healthResponse = await fetch(getApiUrl('health'));
+      console.log('🧪 Test 1: Health check');
+      const healthUrl = getApiUrl('health');
+      const healthResponse = await fetch(healthUrl);
       const healthData = await healthResponse.json();
+      results.health = { success: healthResponse.ok, data: healthData };
 
-      // Test 2: Root endpoint
-      const rootResponse = await fetch(getApiUrl(''));
-      const rootData = await rootResponse.json();
+      // Test 2: Menu items
+      console.log('🧪 Test 2: Menu items');
+      const menuUrl = getApiUrl('api/menu');
+      const menuResponse = await fetch(menuUrl);
+      const menuData = await menuResponse.json();
+      results.menu = { 
+        success: menuResponse.ok, 
+        count: menuData.length,
+        sample: menuData[0] 
+      };
 
-      setTestResults({
-        health: {
-          status: healthResponse.status,
-          data: healthData,
-          url: getApiUrl('health')
-        },
-        root: {
-          status: rootResponse.status,
-          data: rootData,
-          url: getApiUrl('')
-        }
-      });
+      // Test 3: Customer search
+      console.log('🧪 Test 3: Customer search');
+      const customerUrl = getApiUrl('api/customers?phone=8309664356');
+      const customerResponse = await fetch(customerUrl);
+      const customerData = await customerResponse.json();
+      results.customer = { 
+        success: customerResponse.ok, 
+        count: customerData.length,
+        sample: customerData[0] ? {
+          name: customerData[0].name,
+          phone: customerData[0].phone,
+          ordersCount: customerData[0].orders?.length || 0
+        } : null
+      };
+
+      // Test 4: All customers
+      console.log('🧪 Test 4: All customers');
+      const allCustomersUrl = getApiUrl('api/customers');
+      const allCustomersResponse = await fetch(allCustomersUrl);
+      const allCustomersData = await allCustomersResponse.json();
+      results.allCustomers = { 
+        success: allCustomersResponse.ok, 
+        count: allCustomersData.length
+      };
+
+      setTestResults(results);
+      console.log('✅ All tests completed:', results);
+
     } catch (error) {
-      setTestResults({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        url: getApiUrl('health')
-      });
+      console.error('❌ Test failed:', error);
+      setTestResults({ error: error instanceof Error ? error.message : 'Unknown error' });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-10 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Backend Connection Test</CardTitle>
+          <CardTitle>Backend API Test Suite</CardTitle>
           <CardDescription>
-            Test the connection between your frontend and backend
+            Test all backend APIs to verify they're working and returning real database data
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <Button 
-            onClick={testBackendConnection} 
-            disabled={isLoading}
+            onClick={runAllTests} 
+            disabled={loading}
             className="w-full"
           >
-            {isLoading ? "Testing..." : "Test Backend Connection"}
+            {loading ? 'Running Tests...' : 'Run All Tests'}
           </Button>
+        </CardContent>
+      </Card>
 
-          {testResults && (
+      {Object.keys(testResults).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Test Results</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
               {testResults.error ? (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h3 className="font-semibold text-red-800">❌ Connection Failed</h3>
-                  <p className="text-red-600 mt-2">Error: {testResults.error}</p>
-                  <p className="text-sm text-red-500 mt-1">URL: {testResults.url}</p>
+                  <h3 className="font-semibold text-red-800">Error</h3>
+                  <p className="text-red-700">{testResults.error}</p>
                 </div>
               ) : (
                 <>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 className="font-semibold text-green-800">✅ Connection Successful</h3>
-                  </div>
-                  
-                  <div className="grid gap-4">
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-semibold text-blue-800">Health Check</h4>
-                      <p className="text-sm text-blue-600 mt-1">Status: {testResults.health.status}</p>
-                      <p className="text-sm text-blue-600">URL: {testResults.health.url}</p>
-                      <pre className="text-xs mt-2 bg-white p-2 rounded border">
-                        {JSON.stringify(testResults.health.data, null, 2)}
-                      </pre>
+                  {testResults.health && (
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h3 className="font-semibold text-green-800">✅ Health Check</h3>
+                      <p className="text-sm">Status: {testResults.health.success ? 'Success' : 'Failed'}</p>
+                      <p className="text-sm">Data: {JSON.stringify(testResults.health.data)}</p>
                     </div>
+                  )}
 
+                  {testResults.menu && (
                     <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <h4 className="font-semibold text-blue-800">Root Endpoint</h4>
-                      <p className="text-sm text-blue-600 mt-1">Status: {testResults.root.status}</p>
-                      <p className="text-sm text-blue-600">URL: {testResults.root.url}</p>
-                      <pre className="text-xs mt-2 bg-white p-2 rounded border">
-                        {JSON.stringify(testResults.root.data, null, 2)}
-                      </pre>
+                      <h3 className="font-semibold text-blue-800">🍽️ Menu Items</h3>
+                      <p className="text-sm">Status: {testResults.menu.success ? 'Success' : 'Failed'}</p>
+                      <p className="text-sm">Count: {testResults.menu.count} items</p>
+                      {testResults.menu.sample && (
+                        <p className="text-sm">Sample: {testResults.menu.sample.name} - ₹{testResults.menu.sample.price}</p>
+                      )}
                     </div>
-                  </div>
+                  )}
+
+                  {testResults.customer && (
+                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                      <h3 className="font-semibold text-purple-800">👤 Customer Search</h3>
+                      <p className="text-sm">Status: {testResults.customer.success ? 'Success' : 'Failed'}</p>
+                      <p className="text-sm">Found: {testResults.customer.count} customers</p>
+                      {testResults.customer.sample && (
+                        <p className="text-sm">Sample: {testResults.customer.sample.name} ({testResults.customer.sample.phone}) - {testResults.customer.sample.ordersCount} orders</p>
+                      )}
+                    </div>
+                  )}
+
+                  {testResults.allCustomers && (
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <h3 className="font-semibold text-orange-800">👥 All Customers</h3>
+                      <p className="text-sm">Status: {testResults.allCustomers.success ? 'Success' : 'Failed'}</p>
+                      <p className="text-sm">Total: {testResults.allCustomers.count} customers</p>
+                    </div>
+                  )}
                 </>
               )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 } 

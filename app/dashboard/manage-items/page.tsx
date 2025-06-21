@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { getApiUrl } from "@/lib/config";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus, Search, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -53,11 +53,16 @@ const categories = ["Mojito", "Ice Cream", "Milkshake", "Waffle"];
 export default function ManageItemsPage() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<MenuItem | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("name");
   const [editFormData, setEditFormData] = useState({
     name: "",
     category: "",
@@ -69,6 +74,55 @@ export default function ManageItemsPage() {
   useEffect(() => {
     fetchMenuItems();
   }, []);
+
+  useEffect(() => {
+    filterAndSortItems();
+  }, [menuItems, searchTerm, selectedCategory, statusFilter, sortBy]);
+
+  const filterAndSortItems = () => {
+    let filtered = [...menuItems];
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      const isActive = statusFilter === "active";
+      filtered = filtered.filter(item => item.isActive === isActive);
+    }
+
+    // Sort items
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "category":
+          return a.category.localeCompare(b.category);
+        case "date-new":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "date-old":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredItems(filtered);
+  };
 
   const fetchMenuItems = async () => {
     try {
@@ -200,17 +254,12 @@ export default function ManageItemsPage() {
     }
   };
 
-  const groupedItems = categories.reduce(
-    (acc, category) => {
-      if (!Array.isArray(menuItems)) {
-        acc[category] = [];
-        return acc;
-      }
-      acc[category] = menuItems.filter((item) => item.category === category);
-      return acc;
-    },
-    {} as Record<string, MenuItem[]>
-  );
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setStatusFilter("all");
+    setSortBy("name");
+  };
 
   if (isLoading) {
     return (
@@ -221,28 +270,126 @@ export default function ManageItemsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-8">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold mb-2">Manage Menu Items</h1>
-          <p className="text-gray-600">Edit, delete, or toggle availability of menu items</p>
+          <h1 className="text-2xl font-bold text-gray-900">Manage Menu Items</h1>
+          <p className="text-gray-600">Add, edit, and manage your menu items</p>
         </div>
-        <Button onClick={() => router.push("/dashboard/add-item")}>
+        <Button onClick={() => router.push('/dashboard/add-item')} className="bg-emerald-600 hover:bg-emerald-700">
           <Plus className="h-4 w-4 mr-2" />
           Add New Item
         </Button>
       </div>
+
+      {/* Filters Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filters & Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name (A-Z)</SelectItem>
+                <SelectItem value="price-low">Price (Low to High)</SelectItem>
+                <SelectItem value="price-high">Price (High to Low)</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+                <SelectItem value="date-new">Date (Newest)</SelectItem>
+                <SelectItem value="date-old">Date (Oldest)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters */}
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              className="w-full"
+            >
+              Clear Filters
+            </Button>
+          </div>
+
+          {/* Results Summary */}
+          <div className="mt-4 text-sm text-gray-600">
+            Showing {filteredItems.length} of {menuItems.length} items
+            {searchTerm && ` for "${searchTerm}"`}
+            {selectedCategory !== "all" && ` in ${selectedCategory}`}
+            {statusFilter !== "all" && ` (${statusFilter})`}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* No Results Message */}
+      {filteredItems.length === 0 && menuItems.length > 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
+            <p className="text-gray-500 mb-4">
+              Try adjusting your search terms or filters to find what you're looking for.
+            </p>
+            <Button variant="outline" onClick={clearFilters}>
+              Clear all filters
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Menu Items by Category */}
       {categories.map((category) => (
         <div key={category} className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <h2 className="text-xl font-semibold">{category}s</h2>
-            <Badge variant="secondary">{groupedItems[category]?.length || 0} items</Badge>
+            <Badge variant="secondary">{filteredItems.filter(item => item.category === category).length || 0} items</Badge>
           </div>
 
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {groupedItems[category]?.map((item) => (
+            {filteredItems.filter(item => item.category === category).map((item) => (
               <Card key={item._id} className={`${!item.isActive ? 'opacity-60' : ''}`}>
                 <div className="aspect-square bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center relative">
                   <Image
@@ -304,7 +451,7 @@ export default function ManageItemsPage() {
             ))}
           </div>
 
-          {groupedItems[category]?.length === 0 && (
+          {filteredItems.filter(item => item.category === category).length === 0 && (
             <div className="text-center py-8 text-gray-500">
               No {category.toLowerCase()} items found.
             </div>

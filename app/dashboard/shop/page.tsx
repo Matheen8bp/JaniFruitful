@@ -8,9 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/config";
-import { Check, Minus, Plus, ShoppingCart, X } from "lucide-react";
+import { Check, Minus, Plus, Search, ShoppingCart, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -31,16 +32,58 @@ const categories = ["Mojito", "Ice Cream", "Milkshake", "Waffle"]
 
 export default function ShopPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<MenuItem[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [showCheckout, setShowCheckout] = useState(false)
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [sortBy, setSortBy] = useState<string>("name")
   const { toast } = useToast()
 
   useEffect(() => {
     fetchMenuItems()
   }, [])
+
+  useEffect(() => {
+    filterAndSortItems()
+  }, [menuItems, searchTerm, selectedCategory, sortBy])
+
+  const filterAndSortItems = () => {
+    let filtered = [...menuItems]
+
+    // Filter by search term
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(item => item.category === selectedCategory)
+    }
+
+    // Sort items
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name)
+        case "price-low":
+          return a.price - b.price
+        case "price-high":
+          return b.price - a.price
+        case "category":
+          return a.category.localeCompare(b.category)
+        default:
+          return 0
+      }
+    })
+
+    setFilteredItems(filtered)
+  }
 
   const fetchMenuItems = async () => {
     try {
@@ -184,11 +227,10 @@ export default function ShopPage() {
 
   const groupedItems = categories.reduce(
     (acc, category) => {
-      if (!Array.isArray(menuItems)) {
-        acc[category] = [];
-        return acc;
+      const categoryItems = filteredItems.filter((item) => item.category === category)
+      if (categoryItems.length > 0) {
+        acc[category] = categoryItems
       }
-      acc[category] = menuItems.filter((item) => item.category === category)
       return acc
     },
     {} as Record<string, MenuItem[]>,
@@ -199,27 +241,95 @@ export default function ShopPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Shop</h1>
-          <p className="text-gray-600">Select multiple items and create orders</p>
+          <p className="text-gray-600">Browse and purchase menu items</p>
         </div>
-
-        {/* Cart Summary */}
-        <div className="flex items-center gap-4">
-          {cart.length > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-              <ShoppingCart className="h-5 w-5 text-emerald-600" />
-              <div className="text-sm">
-                <span className="font-semibold text-emerald-800">{getTotalItems()} items</span>
-                <span className="text-emerald-600 ml-2">₹{getTotalPrice()}</span>
-              </div>
-            </div>
-          )}
-
+        <div className="flex items-center gap-2">
           <Button onClick={handleCheckout} disabled={cart.length === 0} className="bg-emerald-600 hover:bg-emerald-700">
-            <ShoppingCart className="h-4 w-4 mr-2" />
             Checkout ({getTotalItems()})
           </Button>
         </div>
       </div>
+
+      {/* Filters Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filters & Search</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category} value={category}>
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name (A-Z)</SelectItem>
+                <SelectItem value="price-low">Price (Low to High)</SelectItem>
+                <SelectItem value="price-high">Price (High to Low)</SelectItem>
+                <SelectItem value="category">Category</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Results Summary */}
+          <div className="mt-4 text-sm text-gray-600">
+            Showing {filteredItems.length} of {menuItems.length} items
+            {searchTerm && ` for "${searchTerm}"`}
+            {selectedCategory !== "all" && ` in ${selectedCategory}`}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* No Results Message */}
+      {filteredItems.length === 0 && menuItems.length > 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
+            <p className="text-gray-500 mb-4">
+              Try adjusting your search terms or filters to find what you're looking for.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCategory("all");
+                setSortBy("name");
+              }}
+            >
+              Clear all filters
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Cart Items Preview */}
       {cart.length > 0 && (

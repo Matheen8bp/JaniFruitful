@@ -4,7 +4,7 @@ const OrderSchema = new mongoose.Schema({
   drinkType: {
     type: String,
     required: true,
-    enum: ["Mojito", "Ice Cream", "Milkshake", "Waffle"],
+    enum: ["Mojito", "Ice Cream", "Milkshake", "Waffle", "Reward"],
   },
   itemName: {
     type: String,
@@ -13,7 +13,9 @@ const OrderSchema = new mongoose.Schema({
   itemId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "MenuItem",
-    required: true,
+    required: function() {
+      return this.drinkType !== "Reward";
+    },
   },
   price: {
     type: Number,

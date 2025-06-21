@@ -4,25 +4,48 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
+    // Check if MongoDB URI is available
+    if (!process.env.MONGODB_URI) {
+      console.warn("MONGODB_URI not set, returning empty rewards data")
+      return NextResponse.json({
+        customers: [],
+        stats: {
+          totalRewardsGiven: 0,
+          customersWithRewards: 0,
+          upcomingRewards: 0,
+          readyRewards: 0,
+        },
+      })
+    }
+
     await connectDB()
 
     const customers = await Customer.find({})
 
-    // Process customers for reward status
+    // Process customers for reward status (new logic: every 5 paid drinks = 1 free)
     const rewardCustomers = customers.map((customer) => {
-      const ordersAfterLastReward = customer.totalOrders % 6
-      let status: "earned" | "upcoming" | "progress"
-      let drinksToReward: number
-
-      if (ordersAfterLastReward === 0 && customer.totalOrders > 0) {
-        status = "earned"
-        drinksToReward = 0
-      } else if (ordersAfterLastReward >= 5) {
+      // Calculate paid drinks (excluding free rewards)
+      const paidDrinks = customer.orders.filter((order: any) => !order.isReward).length
+      
+      // Calculate effective paid drinks (subtract claimed rewards)
+      // Each claimed reward "consumes" 5 paid drinks
+      const effectivePaidDrinks = paidDrinks - (customer.rewardsEarned * 5)
+      
+      // Calculate progress toward next reward (every 5 paid drinks = 1 free)
+      const progressTowardReward = effectivePaidDrinks % 5
+      const drinksUntilReward = progressTowardReward === 0 && effectivePaidDrinks > 0 ? 0 : 5 - progressTowardReward
+      
+      // Determine status
+      let status: "earned" | "upcoming" | "progress" | "ready"
+      if (effectivePaidDrinks <= 0) {
+        status = "progress"
+      } else if (progressTowardReward === 0 && effectivePaidDrinks > 0) {
+        // Show "ready" when they have exactly 5 effective paid drinks (or multiples of 5)
+        status = "ready" // Ready to claim reward
+      } else if (progressTowardReward >= 4) {
         status = "upcoming"
-        drinksToReward = 6 - ordersAfterLastReward
       } else {
         status = "progress"
-        drinksToReward = 6 - ordersAfterLastReward
       }
 
       return {
@@ -30,9 +53,11 @@ export async function GET() {
         name: customer.name,
         phone: customer.phone,
         totalOrders: customer.totalOrders,
+        paidDrinks: paidDrinks,
         rewardsEarned: customer.rewardsEarned,
         status,
-        drinksToReward,
+        drinksUntilReward,
+        progressTowardReward,
       }
     })
 
@@ -40,6 +65,7 @@ export async function GET() {
     const totalRewardsGiven = customers.reduce((sum, customer) => sum + customer.rewardsEarned, 0)
     const customersWithRewards = customers.filter((customer) => customer.rewardsEarned > 0).length
     const upcomingRewards = rewardCustomers.filter((customer) => customer.status === "upcoming").length
+    const readyRewards = rewardCustomers.filter((customer) => customer.status === "ready").length
 
     return NextResponse.json({
       customers: rewardCustomers,
@@ -47,6 +73,7 @@ export async function GET() {
         totalRewardsGiven,
         customersWithRewards,
         upcomingRewards,
+        readyRewards,
       },
     })
   } catch (error) {

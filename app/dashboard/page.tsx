@@ -29,6 +29,7 @@ interface DashboardStats {
     name: string
     phone: string
     totalOrders: number
+    drinksUntilReward: number
   }>
 }
 
@@ -36,6 +37,7 @@ interface Customer {
   name: string
   phone: string
   totalOrders: number
+  drinksUntilReward: number
 }
 
 export default function DashboardPage() {
@@ -62,8 +64,12 @@ export default function DashboardPage() {
   }
 
   const sendWhatsAppReminder = (customer: Customer) => {
-    const message = `Hi ${customer.name}, You're just ONE drink away from a FREE reward! 🥤🎁  
-Keep the streak going and claim your 6th drink for FREE! 💥  
+    const message = `Hi ${customer.name}, You're just ${
+      customer.drinksUntilReward
+    } drink${
+      customer.drinksUntilReward > 1 ? "s" : ""
+    } away from a FREE reward! 🥤🎁  
+Keep the streak going and claim your free drink! 💥  
 We can't wait to see you again 😊`
     const whatsappUrl = `https://api.whatsapp.com/send?phone=91${customer.phone}&text=${encodeURIComponent(
       message

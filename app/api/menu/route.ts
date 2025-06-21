@@ -4,6 +4,12 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   try {
+    // Check if MongoDB URI is available
+    if (!process.env.MONGODB_URI) {
+      console.warn("MONGODB_URI not set, returning empty array")
+      return NextResponse.json([])
+    }
+
     await connectDB()
 
     const menuItems = await MenuItem.find({}).sort({ category: 1, name: 1 })
@@ -17,6 +23,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Check if MongoDB URI is available
+    if (!process.env.MONGODB_URI) {
+      return NextResponse.json({ success: false, message: "Database not configured" }, { status: 503 })
+    }
+
     await connectDB()
 
     const { name, category, price, image, description } = await request.json()

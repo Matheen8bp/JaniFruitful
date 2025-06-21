@@ -2,8 +2,9 @@ import mongoose from "mongoose"
 
 const MONGODB_URI = process.env.MONGODB_URI
 
+// Don't throw error during build time, just return a mock connection
 if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable")
+  console.warn("MONGODB_URI not set - this is expected during build time")
 }
 
 let cached = global.mongoose
@@ -13,6 +14,12 @@ if (!cached) {
 }
 
 async function connectDB() {
+  // If no MongoDB URI, return a mock connection for build time
+  if (!MONGODB_URI) {
+    console.warn("MongoDB connection skipped - no URI provided")
+    return null
+  }
+
   if (cached.conn) {
     return cached.conn
   }

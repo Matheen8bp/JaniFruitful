@@ -4,7 +4,7 @@ import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Gift, Home, LogOut, Menu, PlusCircle, Settings, ShoppingBag, User, Users, X } from "lucide-react"
+import { DollarSign, Gift, Home, LogOut, Menu, PlusCircle, Settings, ShoppingBag, User, Users, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
@@ -15,6 +15,7 @@ const navigation = [
   { name: "Profile", href: "/dashboard/profile", icon: User },
   { name: "Rewards", href: "/dashboard/rewards", icon: Gift },
   { name: "Shop", href: "/dashboard/shop", icon: ShoppingBag },
+  { name: "Earnings", href: "/dashboard/earnings", icon: DollarSign },
   { name: "Add Items", href: "/dashboard/add-item", icon: PlusCircle },
   { name: "Manage Items", href: "/dashboard/manage-items", icon: Settings },
 ]

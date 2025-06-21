@@ -14,6 +14,8 @@ const corsOptions = {
     'https://janis-fruitful.vercel.app', // Your specific Vercel domain
     'https://janis-fruitful-git-main-janis-fruitful.vercel.app', // Preview deployments
     'https://janis-fruitful-git-develop-janis-fruitful.vercel.app', // Other possible preview URLs
+    'https://*.vercel.app', // Allow all Vercel preview deployments
+    'https://*.onrender.com', // Allow Render deployments
     process.env.FRONTEND_URL // Allow custom frontend URL from environment
   ].filter(Boolean),
   credentials: true,
@@ -372,9 +374,9 @@ app.get('/api/customers', async (req, res) => {
 app.post('/api/customers/purchase', async (req, res) => {
   try {
     await connectDB();
-    const { customerName, customerPhone, drinkType, itemId, itemName, price } = req.body;
+    const { customerName, customerPhone, drinkType, itemId, itemName, price, isReward } = req.body;
 
-    if (!customerName || !customerPhone || !drinkType || !itemId || !itemName || !price) {
+    if (!customerName || !customerPhone || !drinkType || !itemName || (!isReward && !price)) {
       return res.status(400).json({ error: "All fields are required" });
     }
 
@@ -391,16 +393,27 @@ app.post('/api/customers/purchase', async (req, res) => {
     const order = {
       drinkType,
       itemName,
-      itemId,
-      price,
+      itemId: isReward ? null : itemId,
+      price: isReward ? 0 : price,
       date: new Date(),
-      isReward: false
+      isReward: !!isReward
     };
 
     customer.orders.push(order);
+
+    // Only increment rewardsEarned if this is a reward
+    if (isReward) {
+      customer.rewardsEarned = (customer.rewardsEarned || 0) + 1;
+    }
+
     await customer.save();
 
-    res.json({ success: true, message: "Purchase recorded successfully", customer });
+    res.json({
+      success: true,
+      message: isReward ? "Free reward drink recorded!" : "Purchase recorded successfully",
+      customer,
+      isReward: !!isReward
+    });
   } catch (error) {
     console.error("Error recording purchase:", error);
     res.status(500).json({ error: "Failed to record purchase" });
@@ -424,21 +437,261 @@ app.get('/api/dashboard/stats', async (req, res) => {
     
     const rewardsEarned = customers.reduce((total, customer) => total + customer.rewardsEarned, 0);
     
+    // Get recent customers with reward information
     const recentCustomers = await Customer.find()
       .sort({ updatedAt: -1 })
-      .limit(10)
-      .select('name phone totalOrders');
+      .limit(10);
+
+    // Process recent customers to include drinks needed
+    const processedRecentCustomers = recentCustomers.map((customer) => {
+      const paidDrinks = customer.orders.filter(order => !order.isReward).length;
+      const effectivePaidDrinks = paidDrinks - (customer.rewardsEarned * 5);
+      const progressTowardReward = effectivePaidDrinks % 5;
+      const drinksUntilReward = progressTowardReward === 0 && effectivePaidDrinks > 0 ? 0 : 5 - progressTowardReward;
+      
+      return {
+        name: customer.name,
+        phone: customer.phone,
+        totalOrders: customer.totalOrders,
+        drinksUntilReward: drinksUntilReward
+      };
+    });
 
     res.json({
       totalCustomers,
       totalDrinksSold,
       upcomingRewards,
       rewardsEarned,
-      recentCustomers
+      recentCustomers: processedRecentCustomers
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);
     res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
+});
+
+// Earnings analytics route
+app.get('/api/earnings', async (req, res) => {
+  try {
+    await connectDB();
+    const { period = 'month', startDate, endDate } = req.query;
+    
+    // Get all customers with their orders
+    const customers = await Customer.find().populate('orders');
+    
+    // Calculate date range based on period
+    let dateFilter = {};
+    const now = new Date();
+    
+    if (period === 'today') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      dateFilter = { date: { $gte: today } };
+    } else if (period === 'week') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      dateFilter = { date: { $gte: weekAgo } };
+    } else if (period === 'month') {
+      const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1);
+      dateFilter = { date: { $gte: monthAgo } };
+    } else if (period === 'year') {
+      const yearAgo = new Date(now.getFullYear(), 0, 1);
+      dateFilter = { date: { $gte: yearAgo } };
+    }
+    
+    // If custom date range is provided
+    if (startDate && endDate) {
+      dateFilter = { 
+        date: { 
+          $gte: new Date(startDate), 
+          $lte: new Date(endDate) 
+        } 
+      };
+    }
+    
+    // Calculate total earnings and orders
+    let totalEarnings = 0;
+    let totalOrders = 0;
+    const allOrders = [];
+    
+    customers.forEach(customer => {
+      customer.orders.forEach(order => {
+        // Apply date filter
+        if (Object.keys(dateFilter).length === 0 || 
+            (dateFilter.date.$gte && order.date >= dateFilter.date.$gte) ||
+            (dateFilter.date.$lte && order.date <= dateFilter.date.$lte)) {
+          
+          if (!order.isReward) {
+            totalEarnings += order.price;
+            totalOrders++;
+            allOrders.push({
+              ...order.toObject(),
+              customerName: customer.name,
+              customerPhone: customer.phone
+            });
+          }
+        }
+      });
+    });
+    
+    // Calculate average order value
+    const averageOrderValue = totalOrders > 0 ? totalEarnings / totalOrders : 0;
+    
+    // Calculate top customers
+    const customerSpending = {};
+    customers.forEach(customer => {
+      let customerTotal = 0;
+      let customerOrders = 0;
+      
+      customer.orders.forEach(order => {
+        if (!order.isReward) {
+          if (Object.keys(dateFilter).length === 0 || 
+              (dateFilter.date.$gte && order.date >= dateFilter.date.$gte) ||
+              (dateFilter.date.$lte && order.date <= dateFilter.date.$lte)) {
+            customerTotal += order.price;
+            customerOrders++;
+          }
+        }
+      });
+      
+      if (customerTotal > 0) {
+        customerSpending[customer.phone] = {
+          name: customer.name,
+          phone: customer.phone,
+          totalSpent: customerTotal,
+          orderCount: customerOrders
+        };
+      }
+    });
+    
+    const topCustomers = Object.values(customerSpending)
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+    
+    // Calculate top drinks
+    const drinkStats = {};
+    allOrders.forEach(order => {
+      const key = `${order.itemName}-${order.drinkType}`;
+      if (!drinkStats[key]) {
+        drinkStats[key] = {
+          name: order.itemName,
+          category: order.drinkType,
+          totalSold: 0,
+          totalRevenue: 0
+        };
+      }
+      drinkStats[key].totalSold++;
+      drinkStats[key].totalRevenue += order.price;
+    });
+    
+    const topDrinks = Object.values(drinkStats)
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 10);
+    
+    // Calculate monthly earnings
+    const monthlyData = {};
+    allOrders.forEach(order => {
+      const month = new Date(order.date).toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long' 
+      });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { earnings: 0, orders: 0 };
+      }
+      monthlyData[month].earnings += order.price;
+      monthlyData[month].orders++;
+    });
+    
+    const monthlyEarnings = Object.entries(monthlyData)
+      .map(([month, data]) => ({
+        month,
+        earnings: data.earnings,
+        orders: data.orders
+      }))
+      .sort((a, b) => new Date(a.month) - new Date(b.month))
+      .slice(-6); // Last 6 months
+    
+    // Calculate daily earnings (last 7 days)
+    const dailyData = {};
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      last7Days.push(dateStr);
+      dailyData[dateStr] = { earnings: 0, orders: 0 };
+    }
+    
+    allOrders.forEach(order => {
+      const orderDate = new Date(order.date);
+      const dateStr = orderDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      if (dailyData[dateStr]) {
+        dailyData[dateStr].earnings += order.price;
+        dailyData[dateStr].orders++;
+      }
+    });
+    
+    const dailyEarnings = last7Days.map(date => ({
+      date,
+      earnings: dailyData[date].earnings,
+      orders: dailyData[date].orders
+    }));
+    
+    // Calculate yearly earnings
+    const yearlyData = {};
+    allOrders.forEach(order => {
+      const year = new Date(order.date).getFullYear().toString();
+      if (!yearlyData[year]) {
+        yearlyData[year] = { earnings: 0, orders: 0 };
+      }
+      yearlyData[year].earnings += order.price;
+      yearlyData[year].orders++;
+    });
+    
+    const yearlyEarnings = Object.entries(yearlyData)
+      .map(([year, data]) => ({
+        year,
+        earnings: data.earnings,
+        orders: data.orders
+      }))
+      .sort((a, b) => a.year - b.year);
+    
+    // Prepare transactions data for the table
+    const transactions = allOrders.map(order => ({
+      _id: order._id,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      itemName: order.itemName,
+      drinkType: order.drinkType,
+      price: order.price,
+      date: new Date(order.date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      isReward: order.isReward
+    })).sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
+    
+    res.json({
+      totalEarnings,
+      totalOrders,
+      averageOrderValue,
+      topCustomers,
+      topDrinks,
+      monthlyEarnings,
+      dailyEarnings,
+      yearlyEarnings,
+      transactions
+    });
+    
+  } catch (error) {
+    console.error("Error fetching earnings data:", error);
+    res.status(500).json({ error: "Failed to fetch earnings data" });
   }
 });
 
@@ -448,22 +701,60 @@ app.get('/api/rewards', async (req, res) => {
     await connectDB();
     const customers = await Customer.find().sort({ updatedAt: -1 });
     
-    const rewardsData = customers.map(customer => {
-      const regularOrders = customer.orders.filter(order => !order.isReward).length;
-      const drinksUntilReward = regularOrders % 6 === 0 ? 6 : 6 - (regularOrders % 6);
+    // Process customers for reward status (new logic: every 5 paid drinks = 1 free)
+    const rewardCustomers = customers.map((customer) => {
+      // Calculate paid drinks (excluding free rewards)
+      const paidDrinks = customer.orders.filter(order => !order.isReward).length;
       
+      // Calculate effective paid drinks (subtract claimed rewards)
+      // Each claimed reward "consumes" 5 paid drinks
+      const effectivePaidDrinks = paidDrinks - (customer.rewardsEarned * 5);
+      
+      // Calculate progress toward next reward (every 5 paid drinks = 1 free)
+      const progressTowardReward = effectivePaidDrinks % 5;
+      const drinksUntilReward = progressTowardReward === 0 && effectivePaidDrinks > 0 ? 0 : 5 - progressTowardReward;
+      
+      // Determine status
+      let status;
+      if (effectivePaidDrinks <= 0) {
+        status = "progress";
+      } else if (progressTowardReward === 0 && effectivePaidDrinks > 0) {
+        // Show "ready" when they have exactly 5 effective paid drinks (or multiples of 5)
+        status = "ready"; // Ready to claim reward
+      } else if (progressTowardReward >= 4) {
+        status = "upcoming";
+      } else {
+        status = "progress";
+      }
+
       return {
-        id: customer._id,
+        _id: customer._id,
         name: customer.name,
         phone: customer.phone,
         totalOrders: customer.totalOrders,
+        paidDrinks: paidDrinks,
+        rewardsEarned: customer.rewardsEarned,
+        status,
         drinksUntilReward,
-        canClaimReward: drinksUntilReward === 6,
-        lastOrder: customer.orders.length > 0 ? customer.orders[customer.orders.length - 1].date : null
-      };
-    });
+        progressTowardReward,
+      }
+    })
 
-    res.json(rewardsData);
+    // Calculate stats
+    const totalRewardsGiven = customers.reduce((sum, customer) => sum + customer.rewardsEarned, 0);
+    const customersWithRewards = customers.filter((customer) => customer.rewardsEarned > 0).length;
+    const upcomingRewards = rewardCustomers.filter((customer) => customer.status === "upcoming").length;
+    const readyRewards = rewardCustomers.filter((customer) => customer.status === "ready").length;
+
+    res.json({
+      customers: rewardCustomers,
+      stats: {
+        totalRewardsGiven,
+        customersWithRewards,
+        upcomingRewards,
+        readyRewards,
+      },
+    })
   } catch (error) {
     console.error("Error fetching rewards:", error);
     res.status(500).json({ error: "Failed to fetch rewards data" });
@@ -473,14 +764,21 @@ app.get('/api/rewards', async (req, res) => {
 // Start server
 async function startServer() {
   try {
+    console.log('🚀 Starting JaniFruitful Backend Server...');
+    console.log('📡 Environment:', process.env.NODE_ENV || 'development');
+    console.log('🔗 Port:', port);
+    
     await connectDB();
-    console.log('MongoDB connected');
+    console.log('✅ MongoDB connected successfully');
     
     app.listen(port, () => {
-      console.log(`> Backend server ready on http://localhost:${port}`);
+      console.log(`🎉 Backend server ready on http://localhost:${port}`);
+      console.log(`📊 Health check: http://localhost:${port}/health`);
+      console.log(`🎁 Rewards API: http://localhost:${port}/api/rewards`);
     });
   } catch (err) {
-    console.error('MongoDB connection error:', err);
+    console.error('❌ Server startup failed:', err.message);
+    console.error('💡 Make sure your MongoDB URI is correct and the database is accessible');
     process.exit(1);
   }
 }
