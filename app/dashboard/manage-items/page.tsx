@@ -105,7 +105,7 @@ export default function ManageItemsPage() {
 
   const handleToggleAvailability = async (item: MenuItem) => {
     try {
-      const response = await fetch(`/api/menu-items/${item._id}`, {
+      const response = await fetch(getApiUrl(`api/menu-items/${item._id}/toggle`), {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -141,7 +141,7 @@ export default function ManageItemsPage() {
         formData.append("image", imageFile);
       }
 
-      const response = await fetch(`/api/menu-items/${editingItem._id}`, {
+      const response = await fetch(getApiUrl(`api/menu-items/${editingItem._id}`), {
         method: "PUT",
         body: formData,
       });
@@ -164,7 +164,7 @@ export default function ManageItemsPage() {
     if (!deletingItem) return;
 
     try {
-      const response = await fetch(`/api/menu-items/${deletingItem._id}`, {
+      const response = await fetch(getApiUrl(`api/menu-items/${deletingItem._id}`), {
         method: "DELETE",
       });
 

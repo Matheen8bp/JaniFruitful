@@ -243,6 +243,120 @@ app.post('/api/menu-items', upload.single('image'), async (req, res) => {
   }
 });
 
+// Update menu item
+app.put('/api/menu-items/:id', upload.single('image'), async (req, res) => {
+  try {
+    await connectDB();
+    
+    const { id } = req.params;
+    const { name, category, price, description } = req.body;
+    const imageFile = req.file;
+
+    if (!name || !category || !price) {
+      return res.status(400).json({ success: false, message: "Name, category, and price are required" });
+    }
+
+    const menuItem = await MenuItem.findById(id);
+    if (!menuItem) {
+      return res.status(404).json({ success: false, message: "Menu item not found" });
+    }
+
+    let imageUrl = menuItem.image; // Keep existing image if no new one
+
+    // Upload new image to Cloudinary if provided
+    if (imageFile) {
+      try {
+        // Convert buffer to base64
+        const base64Image = imageFile.buffer.toString('base64');
+        const dataURI = `data:${imageFile.mimetype};base64,${base64Image}`;
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(dataURI, {
+          folder: 'janifruitful/menu-items',
+          resource_type: 'auto'
+        });
+
+        imageUrl = uploadResult.secure_url;
+        console.log('Image uploaded to Cloudinary:', imageUrl);
+      } catch (uploadError) {
+        console.error('Cloudinary upload error:', uploadError);
+        // Keep existing image if upload fails
+      }
+    }
+
+    // Update the menu item
+    menuItem.name = name.trim();
+    menuItem.category = category;
+    menuItem.price = parseFloat(price);
+    menuItem.image = imageUrl;
+    menuItem.description = description ? description.trim() : "";
+    menuItem.updatedAt = new Date();
+
+    await menuItem.save();
+
+    res.json({
+      success: true,
+      message: "Menu item updated successfully",
+      menuItem,
+    });
+  } catch (error) {
+    console.error("Failed to update menu item:", error);
+    res.status(500).json({ success: false, message: "Failed to update menu item" });
+  }
+});
+
+// Toggle menu item availability
+app.patch('/api/menu-items/:id/toggle', async (req, res) => {
+  try {
+    await connectDB();
+    
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const menuItem = await MenuItem.findById(id);
+    if (!menuItem) {
+      return res.status(404).json({ success: false, message: "Menu item not found" });
+    }
+
+    menuItem.isActive = isActive;
+    menuItem.updatedAt = new Date();
+    await menuItem.save();
+
+    res.json({
+      success: true,
+      message: `Menu item ${isActive ? 'activated' : 'deactivated'} successfully`,
+      menuItem,
+    });
+  } catch (error) {
+    console.error("Failed to toggle menu item:", error);
+    res.status(500).json({ success: false, message: "Failed to toggle menu item" });
+  }
+});
+
+// Delete menu item
+app.delete('/api/menu-items/:id', async (req, res) => {
+  try {
+    await connectDB();
+    
+    const { id } = req.params;
+
+    const menuItem = await MenuItem.findById(id);
+    if (!menuItem) {
+      return res.status(404).json({ success: false, message: "Menu item not found" });
+    }
+
+    await MenuItem.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: "Menu item deleted successfully",
+    });
+  } catch (error) {
+    console.error("Failed to delete menu item:", error);
+    res.status(500).json({ success: false, message: "Failed to delete menu item" });
+  }
+});
+
 // Customer routes
 app.get('/api/customers', async (req, res) => {
   try {
