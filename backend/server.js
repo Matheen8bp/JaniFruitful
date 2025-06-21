@@ -36,6 +36,10 @@ const Shop = require('./models/Shop');
 // Import cloudinary
 const cloudinary = require('./cloudinary');
 
+// Add multer for handling multipart form data
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'JaniFruitful Backend is running' });
@@ -183,21 +187,47 @@ app.get('/api/menu-items', async (req, res) => {
   }
 });
 
-app.post('/api/menu-items', async (req, res) => {
+app.post('/api/menu-items', upload.single('image'), async (req, res) => {
   try {
     await connectDB();
-    const { name, category, price, image, description } = req.body;
+    
+    const { name, category, price, description } = req.body;
+    const imageFile = req.file;
 
     if (!name || !category || !price) {
       return res.status(400).json({ success: false, message: "Name, category, and price are required" });
     }
 
+    let imageUrl = "/placeholder.svg?height=200&width=200";
+
+    // Upload image to Cloudinary if provided
+    if (imageFile) {
+      try {
+        // Convert buffer to base64
+        const base64Image = imageFile.buffer.toString('base64');
+        const dataURI = `data:${imageFile.mimetype};base64,${base64Image}`;
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(dataURI, {
+          folder: 'janifruitful/menu-items',
+          resource_type: 'auto'
+        });
+
+        imageUrl = uploadResult.secure_url;
+        console.log('Image uploaded to Cloudinary:', imageUrl);
+      } catch (uploadError) {
+        console.error('Cloudinary upload error:', uploadError);
+        // Continue with placeholder image if upload fails
+      }
+    }
+
     const menuItem = new MenuItem({
-      name,
+      name: name.trim(),
       category,
-      price,
-      image: image || "/placeholder.svg?height=200&width=200",
-      description,
+      price: parseFloat(price),
+      image: imageUrl,
+      description: description ? description.trim() : "",
+      isActive: true
     });
 
     await menuItem.save();

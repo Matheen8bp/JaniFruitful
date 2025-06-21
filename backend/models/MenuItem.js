@@ -8,7 +8,7 @@ const MenuItemSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
+    default: "",
   },
   price: {
     type: Number,
@@ -24,7 +24,7 @@ const MenuItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  isAvailable: {
+  isActive: {
     type: Boolean,
     default: true,
   },
